@@ -30,7 +30,8 @@ export const handler = async (
     try {
       requestBody = JSON.parse(event.body);
     } catch (parseError) {
-      logError('Invalid JSON in request body', { error: parseError.message });
+      const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+      logError('Invalid JSON in request body', { error: errorMessage });
       return errorResponse(400, 'INVALID_JSON', 'Request body must be valid JSON');
     }
 
@@ -77,9 +78,12 @@ export const handler = async (
   } catch (error) {
     const duration = Date.now() - startTime;
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     logError('Error creating todo', {
-      error: error.message,
-      stack: error.stack,
+      error: errorMessage,
+      stack: errorStack,
       duration,
     });
     

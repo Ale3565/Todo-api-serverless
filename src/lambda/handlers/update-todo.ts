@@ -30,7 +30,8 @@ export const handler = async (
     try {
       requestBody = JSON.parse(event.body);
     } catch (parseError) {
-      logError('Invalid JSON in request body', { error: parseError.message });
+      const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+      logError('Invalid JSON in request body', { error: errorMessage });
       return errorResponse(400, 'INVALID_JSON', 'Request body must be valid JSON');
     }
 
@@ -91,7 +92,9 @@ export const handler = async (
         ConditionExpression: 'attribute_exists(todoId)',
       })
     );
+    
     await publishMetric('TodoUpdatedCount', 1);
+    
     const duration = Date.now() - startTime;
     
     logInfo('Todo updated successfully', {
@@ -105,7 +108,10 @@ export const handler = async (
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    if (error.name === 'ConditionalCheckFailedException') {
+  
+    const isConditionalCheckError = error instanceof Error && 'name' in error && error.name === 'ConditionalCheckFailedException';
+    
+    if (isConditionalCheckError) {
       logError('Todo not found for update', {
         todoId: event.pathParameters?.id,
         duration,
@@ -113,10 +119,13 @@ export const handler = async (
       return errorResponse(404, 'NOT_FOUND', 'Todo not found');
     }
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     logError('Error updating todo', {
       todoId: event.pathParameters?.id,
-      error: error.message,
-      stack: error.stack,
+      error: errorMessage,
+      stack: errorStack,
       duration,
     });
     

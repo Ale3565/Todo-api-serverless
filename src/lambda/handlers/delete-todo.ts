@@ -33,7 +33,7 @@ export const handler = async (
       })
     );
 
-    // Publish metric
+    
     await publishMetric('TodoDeletedCount', 1);
 
     const duration = Date.now() - startTime;
@@ -43,7 +43,7 @@ export const handler = async (
       duration,
     });
 
-    // Return 204 No Content for successful deletion
+    
     return {
       statusCode: 204,
       headers: {
@@ -58,7 +58,10 @@ export const handler = async (
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    if (error.name === 'ConditionalCheckFailedException') {
+    
+    const isConditionalCheckError = error instanceof Error && 'name' in error && error.name === 'ConditionalCheckFailedException';
+    
+    if (isConditionalCheckError) {
       logError('Todo not found for deletion', {
         todoId: event.pathParameters?.id,
         duration,
@@ -66,10 +69,13 @@ export const handler = async (
       return errorResponse(404, 'NOT_FOUND', 'Todo not found');
     }
 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
     logError('Error deleting todo', {
       todoId: event.pathParameters?.id,
-      error: error.message,
-      stack: error.stack,
+      error: errorMessage,
+      stack: errorStack,
       duration,
     });
     

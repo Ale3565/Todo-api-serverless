@@ -51,9 +51,12 @@ export const handler = async (
   } catch (error) {
     const duration = Date.now() - startTime;
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     logError('Error listing todos', {
-      error: error.message,
-      stack: error.stack,
+      error: errorMessage,
+      stack: errorStack,
       duration,
     });
     
