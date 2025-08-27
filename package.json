@@ -1,0 +1,36 @@
+{
+  "name": "todo-api-serverless",
+  "version": "0.1.0",
+  "bin": {
+    "todo-api-serverless": "bin/todo-api-serverless.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "cdk": "cdk",
+    "deploy": "cdk deploy",
+    "destroy": "cdk destroy"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
+    "@types/jest": "^29.5.14",
+    "@types/node": "22.7.9",
+    "@types/uuid": "^10.0.0",
+    "aws-cdk": "2.1027.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.876.0",
+    "@aws-sdk/client-dynamodb": "^3.876.0",
+    "@aws-sdk/lib-dynamodb": "^3.876.0",
+    "aws-cdk-lib": "^2.212.0",
+    "constructs": "^10.4.2",
+    "uuid": "^11.1.0"
+  }
+}
