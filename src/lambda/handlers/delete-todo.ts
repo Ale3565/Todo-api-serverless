@@ -2,7 +2,9 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 
 import { dynamoDb, TABLE_NAME } from '../utils/dynamodb';
+import { errorResponse } from '../utils/response';
 import { logInfo, logError } from '../utils/logger';
+import { publishMetric } from '../utils/cloudwatch';
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -14,18 +16,7 @@ export const handler = async (
 
     if (!todoId) {
       logError('TodoId parameter is missing');
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({
-          success: false,
-          error: 'MISSING_ID',
-          message: 'Todo ID is required',
-        }),
-      };
+      return errorResponse(400, 'MISSING_ID', 'Todo ID is required');
     }
 
     logInfo('Deleting todo', {
@@ -34,7 +25,6 @@ export const handler = async (
       path: event.path,
     });
 
-  
     await dynamoDb.send(
       new DeleteCommand({
         TableName: TABLE_NAME,
@@ -43,6 +33,9 @@ export const handler = async (
       })
     );
 
+    // Publish metric
+    await publishMetric('TodoDeletedCount', 1);
+
     const duration = Date.now() - startTime;
     
     logInfo('Todo deleted successfully', {
@@ -50,7 +43,7 @@ export const handler = async (
       duration,
     });
 
-    
+    // Return 204 No Content for successful deletion
     return {
       statusCode: 204,
       headers: {
@@ -70,19 +63,7 @@ export const handler = async (
         todoId: event.pathParameters?.id,
         duration,
       });
-      
-      return {
-        statusCode: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({
-          success: false,
-          error: 'NOT_FOUND',
-          message: 'Todo not found',
-        }),
-      };
+      return errorResponse(404, 'NOT_FOUND', 'Todo not found');
     }
 
     logError('Error deleting todo', {
@@ -92,17 +73,6 @@ export const handler = async (
       duration,
     });
     
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({
-        success: false,
-        error: 'INTERNAL_ERROR',
-        message: 'Failed to delete todo',
-      }),
-    };
+    return errorResponse(500, 'INTERNAL_ERROR', 'Failed to delete todo');
   }
 };

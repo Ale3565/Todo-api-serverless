@@ -4,6 +4,7 @@ import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDb, TABLE_NAME } from '../utils/dynamodb';
 import { successResponse, errorResponse } from '../utils/response';
 import { logInfo, logError } from '../utils/logger';
+import { publishMetric } from '../utils/cloudwatch';
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -36,6 +37,8 @@ export const handler = async (
       logInfo('Todo not found', { todoId });
       return errorResponse(404, 'NOT_FOUND', 'Todo not found');
     }
+
+    await publishMetric('TodoRetrievedCount', 1);
 
     const duration = Date.now() - startTime;
     

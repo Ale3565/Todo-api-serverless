@@ -4,6 +4,7 @@ import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDb, TABLE_NAME } from '../utils/dynamodb';
 import { successResponse, errorResponse } from '../utils/response';
 import { logInfo, logError } from '../utils/logger';
+import { publishMetric } from '../utils/cloudwatch';
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -29,6 +30,8 @@ export const handler = async (
     todos.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+
+    await publishMetric('TodosListedCount', 1);
 
     const duration = Date.now() - startTime;
     
