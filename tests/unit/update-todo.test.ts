@@ -15,7 +15,7 @@ describe('update-todo handler', () => {
       todoId: '123',
       title: 'Updated Todo',
       completed: true,
-      updatedAt: '2023-01-01T00:00:00.000Z'
+      updatedAt: '2025-01-01T00:00:00.000Z'
     };
 
     ddbMock.on(UpdateCommand).resolves({ Attributes: updatedTodo });

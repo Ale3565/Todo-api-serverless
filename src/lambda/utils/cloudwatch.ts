@@ -1,5 +1,4 @@
-
-import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
+import { CloudWatchClient, PutMetricDataCommand, StandardUnit } from '@aws-sdk/client-cloudwatch';
 
 const cloudWatch = new CloudWatchClient({
   
@@ -9,7 +8,7 @@ const cloudWatch = new CloudWatchClient({
 export const publishMetric = async (
   metricName: string,
   value: number,
-  unit: string = 'Count',
+  unit: StandardUnit = StandardUnit.Count,
   namespace: string = 'TodoAPI'
 ): Promise<void> => {
   try {
@@ -20,7 +19,7 @@ export const publishMetric = async (
           {
             MetricName: metricName,
             Value: value,
-            Unit: unit,
+            Unit: unit, 
             Timestamp: new Date(),
           },
         ],

@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
 
 import { handler } from '../../src/lambda/handlers/create-todo';
 
@@ -15,9 +15,9 @@ describe('create-todo handler', () => {
   });
 
   it('should create a todo successfully', async () => {
-    
+  
     ddbMock.on(PutCommand).resolves({});
-    cloudWatchMock.on().resolves({});
+    cloudWatchMock.on(PutMetricDataCommand).resolves({}); 
 
     const event: Partial<APIGatewayProxyEvent> = {
       body: JSON.stringify({
@@ -63,7 +63,7 @@ describe('create-todo handler', () => {
       path: '/todos'
     };
 
-   
+    
     const result = await handler(event as APIGatewayProxyEvent);
 
     
