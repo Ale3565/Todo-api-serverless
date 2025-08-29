@@ -1,0 +1,5 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+test('SQS Queue Created', () => {
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidG9kby1hcGktc2VydmVybGVzcy50ZXN0LmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsidG9kby1hcGktc2VydmVybGVzcy50ZXN0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7O0FBQ0EsSUFBSSxDQUFDLG1CQUFtQixFQUFFLEdBQUcsRUFBRTtBQUUvQixDQUFDLENBQUMsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbIlxudGVzdCgnU1FTIFF1ZXVlIENyZWF0ZWQnLCAoKSA9PiB7XG5cbn0pO1xuIl19

@@ -1,0 +1,11 @@
+{
+  "name": "todo-lambda-functions",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.876.0",
+    "@aws-sdk/client-dynamodb": "^3.876.0",
+    "@aws-sdk/lib-dynamodb": "^3.876.0",
+    "uuid": "^11.1.0"
+  }
+}

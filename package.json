@@ -6,11 +6,13 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepare-deploy": "npm run build && npm install --production",
     "watch": "tsc -w",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "cdk": "cdk",
+    "predeploy": "npm run build",
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
     "lint": "eslint src --ext .ts",
@@ -30,7 +32,6 @@
     "typescript": "~5.6.3"
   },
   "dependencies": {
-    "@aws-cdk/aws-lambda-nodejs": "^1.203.0",
     "@aws-sdk/client-cloudwatch": "^3.876.0",
     "@aws-sdk/client-dynamodb": "^3.876.0",
     "@aws-sdk/lib-dynamodb": "^3.876.0",

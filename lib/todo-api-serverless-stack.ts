@@ -61,8 +61,8 @@ export class TodoApiServerlessStack extends cdk.Stack {
       environment: {
         TABLE_NAME: todoTable.tableName,
       },
-    
-      code: lambda.Code.fromAsset(join(__dirname, '../lambda')), 
+      
+      code: lambda.Code.fromAsset(join(__dirname, '../src/lambda')), 
     };
 
     const createTodoFunction = new lambda.Function(this, 'CreateTodoFunction', {
