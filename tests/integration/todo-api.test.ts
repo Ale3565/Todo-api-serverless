@@ -5,7 +5,7 @@ describe('Todo API Integration Tests', () => {
   let testTodoId: string;
 
   beforeAll(async () => {
-    // Use environment variable or fallback to default URL
+    
     apiUrl = process.env.API_URL || 'https://3vles3hp9f.execute-api.us-east-1.amazonaws.com/prod/';
     
     if (!apiUrl.startsWith('https://')) {
@@ -13,7 +13,7 @@ describe('Todo API Integration Tests', () => {
       return;
     }
 
-    // Ensure URL ends with /
+    
     if (!apiUrl.endsWith('/')) {
       apiUrl += '/';
     }
@@ -57,7 +57,7 @@ describe('Todo API Integration Tests', () => {
     expect(result.data!.createdAt).toBeDefined();
     expect(result.data!.updatedAt).toBeDefined();
 
-    // Store the ID for subsequent tests
+    
     testTodoId = result.data!.todoId;
   }, 10000);
 
@@ -97,7 +97,7 @@ describe('Todo API Integration Tests', () => {
     expect(Array.isArray(result.data!.todos)).toBe(true);
     expect(typeof result.data!.count).toBe('number');
     
-    // Should include our test todo
+    
     if (testTodoId) {
       const testTodo = result.data!.todos.find(todo => todo.todoId === testTodoId);
       expect(testTodo).toBeDefined();
@@ -147,11 +147,11 @@ describe('Todo API Integration Tests', () => {
 
     expect(response.status).toBe(204);
     
-    // For 204 response, there should be no body content
+    
     const responseText = await response.text();
     expect(responseText).toBe('');
 
-    // Verify the todo is deleted by trying to get it
+   
     const getResponse = await fetch(`${apiUrl}todos/${testTodoId}`);
     expect(getResponse.status).toBe(404);
   }, 10000);
@@ -172,7 +172,7 @@ describe('Todo API Integration Tests', () => {
       return;
     }
 
-    // Try to create a todo without title
+   
     const invalidRequest = {
       description: 'No title provided'
     };

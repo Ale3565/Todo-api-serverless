@@ -1,8 +1,8 @@
-// Set up environment first
+
 process.env.NODE_ENV = 'test';
 process.env.TABLE_NAME = 'TestTodos';
 
-// Mock the DynamoDB and CloudWatch utilities
+
 jest.mock('../../src/lambda/utils/dynamodb');
 jest.mock('../../src/lambda/utils/cloudwatch');
 
@@ -11,21 +11,21 @@ import { handler } from '../../src/lambda/handlers/delete-todo';
 import { dynamoDb } from '../../src/lambda/utils/dynamodb';
 import { publishMetric } from '../../src/lambda/utils/cloudwatch';
 
-// Get mocked instances
+
 const mockDynamoDb = dynamoDb as jest.Mocked<typeof dynamoDb>;
 const mockPublishMetric = publishMetric as jest.MockedFunction<typeof publishMetric>;
 
 describe('delete-todo handler', () => {
   beforeEach(() => {
-    // Reset all mocks
+   
     jest.clearAllMocks();
     
-    // Set up default mock behaviors
+    
     mockPublishMetric.mockResolvedValue(undefined);
   });
 
   it('should delete todo successfully', async () => {
-    // Configure mock for successful deletion
+    
     mockDynamoDb.send.mockResolvedValueOnce({});
 
     const event: Partial<APIGatewayProxyEvent> = {
@@ -57,7 +57,7 @@ describe('delete-todo handler', () => {
   });
 
   it('should return 404 when todo not found', async () => {
-    // Configure mock to simulate conditional check failure
+   
     const conditionalError = new Error('The conditional request failed');
     conditionalError.name = 'ConditionalCheckFailedException';
     mockDynamoDb.send.mockRejectedValueOnce(conditionalError);
@@ -76,7 +76,7 @@ describe('delete-todo handler', () => {
   });
 
   it('should handle DynamoDB errors', async () => {
-    // Configure mock to simulate general DynamoDB error
+    
     mockDynamoDb.send.mockRejectedValueOnce(new Error('DynamoDB Error'));
 
     const event: Partial<APIGatewayProxyEvent> = {

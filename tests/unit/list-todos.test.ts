@@ -1,8 +1,8 @@
-// Set up environment first
+
 process.env.NODE_ENV = 'test';
 process.env.TABLE_NAME = 'TestTodos';
 
-// Mock the DynamoDB and CloudWatch utilities
+
 jest.mock('../../src/lambda/utils/dynamodb');
 jest.mock('../../src/lambda/utils/cloudwatch');
 
@@ -11,16 +11,16 @@ import { handler } from '../../src/lambda/handlers/list-todos';
 import { dynamoDb } from '../../src/lambda/utils/dynamodb';
 import { publishMetric } from '../../src/lambda/utils/cloudwatch';
 
-// Get mocked instances
+
 const mockDynamoDb = dynamoDb as jest.Mocked<typeof dynamoDb>;
 const mockPublishMetric = publishMetric as jest.MockedFunction<typeof publishMetric>;
 
 describe('list-todos handler', () => {
   beforeEach(() => {
-    // Reset all mocks
+    
     jest.clearAllMocks();
     
-    // Set up default mock behaviors
+    
     mockPublishMetric.mockResolvedValue(undefined);
   });
 

@@ -82,7 +82,7 @@ async function generateApiActivity() {
     console.log('Iniciando generación de actividad en la API...');
     console.log('URL configurada:', API_BASE_URL);
     
-    // Validación de API_BASE_URL removida - usando URL configurada
+    
 
     const activities = [];
     let createdTodoIds = [];

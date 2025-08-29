@@ -34,7 +34,7 @@ export const publishMetric = async (
     );
   } catch (error) {
     console.error('Error publishing metric:', error);
-    // No re-throw error in test environment to prevent test failures due to metrics
+    
     if (process.env.NODE_ENV !== 'test') {
       throw error;
     }
