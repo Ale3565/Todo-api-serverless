@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 import { dynamoDb, TABLE_NAME } from '../utils/dynamodb';
 import { successResponse, errorResponse } from '../utils/response';
@@ -42,7 +42,7 @@ export const handler = async (
     }
 
    
-    const todoId = uuidv4();
+    const todoId = randomUUID();
     const now = new Date().toISOString();
     
     const todo: Todo = {
