@@ -12,37 +12,47 @@ Este proyecto implementa una API REST serverless para gestión de tareas (TODOs)
 
 ## Estructura del Proyecto
 
-
+```
 todo-api-serverless/
-├── src/lambda/
-│   ├── handlers/          # Funciones Lambda
-│   │   ├── create-todo.ts
-│   │   ├── get-todo.ts
-│   │   ├── list-todos.ts
-│   │   ├── update-todo.ts
-│   │   └── delete-todo.ts
-│   ├── utils/            # Utilidades compartidas
-│   │   ├── dynamodb.ts
-│   │   ├── response.ts
-│   │   ├── logger.ts
-│   │   ├── cloudwatch.ts
-│   │   └── __mocks__/   # Mocks para testing
-│   └── types/            # Tipos TypeScript
-│       └── todo.ts
-├── lib/                  # Stack de CDK
+├── src/
+│   └── lambda/
+│       ├── handlers/              # Funciones Lambda
+│       │   ├── create-todo.ts
+│       │   ├── get-todo.ts
+│       │   ├── list-todos.ts
+│       │   ├── update-todo.ts
+│       │   └── delete-todo.ts
+│       ├── utils/                 # Utilidades compartidas
+│       │   ├── dynamodb.ts
+│       │   ├── response.ts
+│       │   ├── logger.ts
+│       │   ├── cloudwatch.ts
+│       │   └── __mocks__/         # Mocks para testing
+│       └── types/                 # Tipos TypeScript
+│           └── todo.ts
+├── lib/                           # Stack de CDK
 │   └── todo-api-serverless-stack.ts
-├── tests/               # Pruebas
-│   ├── unit/           # Pruebas unitarias
-│   ├── integration/    # Pruebas de integración
-│   └── setup.ts        # Configuración de tests
-├── docs/                # Documentación
+├── tests/                         # Pruebas
+│   ├── unit/                      # Pruebas unitarias
+│   ├── integration/               # Pruebas de integración
+│   └── setup.ts                   # Configuración de tests
+├── docs/                          # Documentación
 │   ├── EVIDENCE_CLOUDWATCH_METRICS.md
-│   └── images/         # Capturas de pantalla
-├── scripts/             # Scripts de utilidad
+│   └── images/                    # Capturas de pantalla
+├── scripts/                       # Scripts de utilidad
 │   └── generate-metrics-evidence.js
-└── postman/            # Colección Postman
-    ├── Todo-API.postman_collection.json
-    └── Todo-API.postman_environment.json
+├── postman/                       # Colección Postman
+│   ├── Todo-API.postman_collection.json
+│   └── Todo-API.postman_environment.json
+├── bin/                           # Punto de entrada CDK
+├── cdk.out/                       # Archivos generados por CDK
+├── node_modules/                  # Dependencias
+├── package.json                   # Configuración del proyecto
+├── tsconfig.json                  # Configuración TypeScript
+├── jest.config.js                 # Configuración de Jest
+├── cdk.json                       # Configuración de CDK
+└── README.md                      # Documentación principal
+```
 
 
 ## Instalación y Configuración
@@ -63,6 +73,7 @@ npm install -g aws-cdk
 1. **Clonar el repositorio**
 
 git clone https://github.com/Ale3565/Todo-api-serverless.git
+
 cd todo-api-serverless
 
 
