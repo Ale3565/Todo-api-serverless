@@ -10,10 +10,9 @@ export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const startTime = Date.now();
-  
-  try {
-    const todoId = event.pathParameters?.id;
+  const todoId = event.pathParameters?.id;
 
+  try {
     if (!todoId) {
       logError('TodoId parameter is missing');
       return errorResponse(400, 'MISSING_ID', 'Todo ID is required');
@@ -23,43 +22,59 @@ export const handler = async (
       todoId,
       httpMethod: event.httpMethod,
       path: event.path,
+      tableName: TABLE_NAME
     });
 
-    
-    const result = await dynamoDb.send(
-      new GetCommand({
-        TableName: TABLE_NAME,
-        Key: { todoId },
-      })
-    );
+    let result;
+    try {
+      result = await dynamoDb.send(
+        new GetCommand({
+          TableName: TABLE_NAME,
+          Key: { todoId }
+        })
+      );
+
+      logInfo('DynamoDB response received', { 
+        result,
+        hasItem: !!result.Item,
+        todoId 
+      });
+    } catch (dbError) {
+      logError('DynamoDB operation failed', { 
+        error: dbError,
+        todoId,
+        tableName: TABLE_NAME
+      });
+      return errorResponse(500, 'DB_ERROR', 'Database operation failed');
+    }
 
     if (!result.Item) {
       logInfo('Todo not found', { todoId });
       return errorResponse(404, 'NOT_FOUND', 'Todo not found');
     }
 
-    await publishMetric('TodoRetrievedCount', 1);
+    try {
+      await publishMetric('TodoRetrievedCount', 1);
+    } catch (metricError) {
+      logError('Error publishing metric', { error: metricError });
+      // Continue execution even if metric publishing fails
+    }
 
     const duration = Date.now() - startTime;
-    
     logInfo('Todo retrieved successfully', {
       todoId,
-      duration,
+      duration
     });
 
     return successResponse(result.Item, 'Todo retrieved successfully');
-    
   } catch (error) {
     const duration = Date.now() - startTime;
-    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorStack = error instanceof Error ? error.stack : undefined;
     
-    logError('Error getting todo', {
-      todoId: event.pathParameters?.id,
+    logError('Unexpected error getting todo', {
+      todoId,
       error: errorMessage,
-      stack: errorStack,
-      duration,
+      duration
     });
     
     return errorResponse(500, 'INTERNAL_ERROR', 'Failed to get todo');

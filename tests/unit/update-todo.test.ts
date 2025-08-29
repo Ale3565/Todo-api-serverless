@@ -1,20 +1,27 @@
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.TABLE_NAME = 'TestTodos';
+
+// Mock the DynamoDB and CloudWatch utilities
+jest.mock('../../src/lambda/utils/dynamodb');
+jest.mock('../../src/lambda/utils/cloudwatch');
+
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
-
 import { handler } from '../../src/lambda/handlers/update-todo';
+import { dynamoDb } from '../../src/lambda/utils/dynamodb';
+import { publishMetric } from '../../src/lambda/utils/cloudwatch';
 
-const ddbMock = mockClient(DynamoDBDocumentClient);
-const cloudWatchMock = mockClient(CloudWatchClient);
+// Get mocked instances
+const mockDynamoDb = dynamoDb as jest.Mocked<typeof dynamoDb>;
+const mockPublishMetric = publishMetric as jest.MockedFunction<typeof publishMetric>;
 
 describe('update-todo handler', () => {
   beforeEach(() => {
-    ddbMock.reset();
-    cloudWatchMock.reset();
+    // Reset all mocks
+    jest.clearAllMocks();
     
-    
-    cloudWatchMock.on(PutMetricDataCommand).resolves({});
+    // Set up default mock behaviors
+    mockPublishMetric.mockResolvedValue(undefined);
   });
 
   it('should update todo successfully', async () => {
@@ -25,7 +32,7 @@ describe('update-todo handler', () => {
       updatedAt: '2025-01-01T00:00:00.000Z'
     };
 
-    ddbMock.on(UpdateCommand).resolves({ Attributes: updatedTodo });
+    mockDynamoDb.send.mockResolvedValueOnce({ Attributes: updatedTodo });
 
     const event: Partial<APIGatewayProxyEvent> = {
       pathParameters: { id: '123' },
@@ -39,7 +46,8 @@ describe('update-todo handler', () => {
     expect(result.statusCode).toBe(200);
     expect(JSON.parse(result.body).success).toBe(true);
     expect(JSON.parse(result.body).data.title).toBe('Updated Todo');
-    expect(ddbMock.commandCalls(UpdateCommand).length).toBe(1);
+    expect(mockDynamoDb.send).toHaveBeenCalledTimes(1);
+    expect(mockPublishMetric).toHaveBeenCalledWith('TodoUpdatedCount', 1);
   });
 
   it('should return 400 when id parameter is missing', async () => {
@@ -54,6 +62,7 @@ describe('update-todo handler', () => {
 
     expect(result.statusCode).toBe(400);
     expect(JSON.parse(result.body).error).toBe('MISSING_ID');
+    expect(mockDynamoDb.send).not.toHaveBeenCalled();
   });
 
   it('should return 400 when body is missing', async () => {
@@ -68,6 +77,7 @@ describe('update-todo handler', () => {
 
     expect(result.statusCode).toBe(400);
     expect(JSON.parse(result.body).error).toBe('MISSING_BODY');
+    expect(mockDynamoDb.send).not.toHaveBeenCalled();
   });
 
   it('should return 400 when body is invalid JSON', async () => {
@@ -82,6 +92,7 @@ describe('update-todo handler', () => {
 
     expect(result.statusCode).toBe(400);
     expect(JSON.parse(result.body).error).toBe('INVALID_JSON');
+    expect(mockDynamoDb.send).not.toHaveBeenCalled();
   });
 
   it('should return 400 when no valid fields to update', async () => {
@@ -96,6 +107,7 @@ describe('update-todo handler', () => {
 
     expect(result.statusCode).toBe(400);
     expect(JSON.parse(result.body).error).toBe('NO_UPDATES');
+    expect(mockDynamoDb.send).not.toHaveBeenCalled();
   });
 
   it('should return 400 when title is empty string', async () => {
@@ -110,6 +122,7 @@ describe('update-todo handler', () => {
 
     expect(result.statusCode).toBe(400);
     expect(JSON.parse(result.body).error).toBe('INVALID_TITLE');
+    expect(mockDynamoDb.send).not.toHaveBeenCalled();
   });
 
   it('should return 400 when completed is not boolean', async () => {
@@ -124,13 +137,13 @@ describe('update-todo handler', () => {
 
     expect(result.statusCode).toBe(400);
     expect(JSON.parse(result.body).error).toBe('INVALID_COMPLETED');
+    expect(mockDynamoDb.send).not.toHaveBeenCalled();
   });
 
   it('should return 404 when todo not found', async () => {
-    
     const conditionalError = new Error('The conditional request failed');
     (conditionalError as any).name = 'ConditionalCheckFailedException';
-    ddbMock.on(UpdateCommand).rejects(conditionalError);
+    mockDynamoDb.send.mockRejectedValueOnce(conditionalError);
 
     const event: Partial<APIGatewayProxyEvent> = {
       pathParameters: { id: '999' },
@@ -142,11 +155,12 @@ describe('update-todo handler', () => {
     const result = await handler(event as APIGatewayProxyEvent);
 
     expect(result.statusCode).toBe(404);
-    expect(JSON.parse(result.body).error).toBe('NOT_FOUND');
+    expect(JSON.parse(result.body).error).toBe('TODO_NOT_FOUND');
+    expect(mockDynamoDb.send).toHaveBeenCalledTimes(1);
   });
 
   it('should handle DynamoDB errors', async () => {
-    ddbMock.on(UpdateCommand).rejects(new Error('DynamoDB Error'));
+    mockDynamoDb.send.mockRejectedValueOnce(new Error('DynamoDB Error'));
 
     const event: Partial<APIGatewayProxyEvent> = {
       pathParameters: { id: '123' },
@@ -158,7 +172,8 @@ describe('update-todo handler', () => {
     const result = await handler(event as APIGatewayProxyEvent);
 
     expect(result.statusCode).toBe(500);
-    expect(JSON.parse(result.body).error).toBe('INTERNAL_ERROR');
+    expect(JSON.parse(result.body).error).toBe('DB_ERROR');
+    expect(mockDynamoDb.send).toHaveBeenCalledTimes(1);
   });
 
   it('should update only description', async () => {
@@ -168,7 +183,7 @@ describe('update-todo handler', () => {
       updatedAt: '2025-01-01T00:00:00.000Z'
     };
 
-    ddbMock.on(UpdateCommand).resolves({ Attributes: updatedTodo });
+    mockDynamoDb.send.mockResolvedValueOnce({ Attributes: updatedTodo });
 
     const event: Partial<APIGatewayProxyEvent> = {
       pathParameters: { id: '123' },
@@ -181,5 +196,6 @@ describe('update-todo handler', () => {
 
     expect(result.statusCode).toBe(200);
     expect(JSON.parse(result.body).success).toBe(true);
+    expect(mockDynamoDb.send).toHaveBeenCalledTimes(1);
   });
 });

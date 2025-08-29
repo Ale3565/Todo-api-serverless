@@ -7,7 +7,10 @@ module.exports = {
     '**/?(*.)+(spec|test).ts'
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\.ts$': ['ts-jest', {
+     
+      useESM: false
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -19,10 +22,4 @@ module.exports = {
   
   testTimeout: 10000,
   maxWorkers: 1,
-  
-  globals: {
-    'ts-jest': {
-      isolatedModules: true,
-    },
-  },
 };

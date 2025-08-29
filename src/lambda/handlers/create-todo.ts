@@ -54,16 +54,26 @@ export const handler = async (
       updatedAt: now,
     };
 
-    
-    await dynamoDb.send(
-      new PutCommand({
-        TableName: TABLE_NAME,
-        Item: todo,
-      })
-    );
+    try {
+      await dynamoDb.send(
+        new PutCommand({
+          TableName: TABLE_NAME,
+          Item: todo,
+        })
+      );
+    } catch (dbError) {
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error';
+      logError('DynamoDB error creating todo', { error: errorMessage, todoId });
+      return errorResponse(500, 'DB_ERROR', 'Database error occurred while creating todo');
+    }
 
-    
-    await publishMetric('TodoCreatedCount', 1);
+    try {
+      await publishMetric('TodoCreatedCount', 1);
+    } catch (metricError) {
+      // Log metric error but don't fail the request
+      logError('Error publishing metric', { error: metricError instanceof Error ? metricError.message : 'Unknown metric error' });
+      // Continue execution - metrics errors shouldn't affect the API response
+    }
 
     const duration = Date.now() - startTime;
     
@@ -73,7 +83,19 @@ export const handler = async (
       duration,
     });
 
-    return successResponse(todo, 'Todo created successfully', 201);
+    // Return response with 'id' field for compatibility with tests
+    const responseData = {
+      id: todo.todoId,
+      todoId: todo.todoId,
+      title: todo.title,
+      description: todo.description,
+      completed: todo.completed,
+      createdAt: todo.createdAt,
+      updatedAt: todo.updatedAt,
+    };
+    
+
+    return successResponse(responseData, 'Todo created successfully', 201);
     
   } catch (error) {
     const duration = Date.now() - startTime;

@@ -81,19 +81,38 @@ export const handler = async (
     expressionAttributeValues[':updatedAt'] = new Date().toISOString();
 
     
-    const result = await dynamoDb.send(
-      new UpdateCommand({
-        TableName: TABLE_NAME,
-        Key: { todoId },
-        UpdateExpression: `SET ${updateExpressions.join(', ')}`,
-        ExpressionAttributeNames: expressionAttributeNames,
-        ExpressionAttributeValues: expressionAttributeValues,
-        ReturnValues: 'ALL_NEW',
-        ConditionExpression: 'attribute_exists(todoId)',
-      })
-    );
+    let result;
+    try {
+      result = await dynamoDb.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: { todoId },
+          UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+          ExpressionAttributeNames: expressionAttributeNames,
+          ExpressionAttributeValues: expressionAttributeValues,
+          ReturnValues: 'ALL_NEW',
+          ConditionExpression: 'attribute_exists(todoId)',
+        })
+      );
+    } catch (dbError) {
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error';
+      logError('DynamoDB error updating todo', { error: errorMessage, todoId });
+      
+      // Check if this is a conditional check failure (todo not found)
+      if (dbError instanceof Error && dbError.name === 'ConditionalCheckFailedException') {
+        return errorResponse(404, 'TODO_NOT_FOUND', 'Todo not found');
+      }
+      
+      return errorResponse(500, 'DB_ERROR', 'Database error occurred while updating todo');
+    }
     
-    await publishMetric('TodoUpdatedCount', 1);
+    try {
+      await publishMetric('TodoUpdatedCount', 1);
+    } catch (metricError) {
+      // Log metric error but don't fail the request
+      logError('Error publishing metric', { error: metricError instanceof Error ? metricError.message : 'Unknown metric error' });
+      // Continue execution - metrics errors shouldn't affect the API response
+    }
     
     const duration = Date.now() - startTime;
     

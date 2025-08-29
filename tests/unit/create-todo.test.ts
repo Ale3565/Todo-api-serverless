@@ -1,14 +1,29 @@
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.TABLE_NAME = 'TestTodos';
+
+// Mock the DynamoDB and CloudWatch utilities
+jest.mock('../../src/lambda/utils/dynamodb');
+jest.mock('../../src/lambda/utils/cloudwatch');
+
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
-
-
-import { ddbMock, cloudWatchMock } from '../setup';
-
-
 import { handler } from '../../src/lambda/handlers/create-todo';
+import { dynamoDb } from '../../src/lambda/utils/dynamodb';
+import { publishMetric } from '../../src/lambda/utils/cloudwatch';
+
+// Get mocked instances
+const mockDynamoDb = dynamoDb as jest.Mocked<typeof dynamoDb>;
+const mockPublishMetric = publishMetric as jest.MockedFunction<typeof publishMetric>;
 
 describe('CreateTodo Lambda', () => {
+  beforeEach(() => {
+    // Reset all mocks
+    jest.clearAllMocks();
+    
+    // Set up default mock behaviors
+    mockPublishMetric.mockResolvedValue(undefined);
+  });
+
   const mockEvent = {
     body: JSON.stringify({
       title: 'Test todo',
@@ -25,23 +40,22 @@ describe('CreateTodo Lambda', () => {
   } as APIGatewayProxyEvent;
 
   it('should create a todo successfully', async () => {
-    
-    ddbMock.on(PutCommand).resolves({});
-    cloudWatchMock.on(PutMetricDataCommand).resolves({});
+    mockDynamoDb.send.mockResolvedValueOnce({});
 
     const result = await handler(mockEvent);
 
     expect(result.statusCode).toBe(201);
     
     const body = JSON.parse(result.body);
-    expect(body).toHaveProperty('id');
-    expect(body.title).toBe('Test todo');
-    expect(body.description).toBe('Test description');
-    expect(body).toHaveProperty('createdAt');
-    
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveProperty('id');
+    expect(body.data).toHaveProperty('todoId');
+    expect(body.data.title).toBe('Test todo');
+    expect(body.data.description).toBe('Test description');
+    expect(body.data).toHaveProperty('createdAt');
 
-    expect(ddbMock.calls()).toHaveLength(1);
-    expect(cloudWatchMock.calls()).toHaveLength(1);
+    expect(mockDynamoDb.send).toHaveBeenCalledTimes(1);
+    expect(mockPublishMetric).toHaveBeenCalledWith('TodoCreatedCount', 1);
   });
 
   it('should return 400 for invalid input', async () => {
@@ -54,18 +68,21 @@ describe('CreateTodo Lambda', () => {
 
     expect(result.statusCode).toBe(400);
     expect(JSON.parse(result.body)).toHaveProperty('message');
+    expect(JSON.parse(result.body).error).toBe('INVALID_TITLE');
     
-   
-    expect(ddbMock.calls()).toHaveLength(0);
-    expect(cloudWatchMock.calls()).toHaveLength(0);
+    expect(mockDynamoDb.send).not.toHaveBeenCalled();
+    expect(mockPublishMetric).not.toHaveBeenCalled();
   });
 
   it('should handle DynamoDB errors', async () => {
-    ddbMock.on(PutCommand).rejects(new Error('DynamoDB error'));
+    mockDynamoDb.send.mockRejectedValueOnce(new Error('DynamoDB error'));
 
     const result = await handler(mockEvent);
 
     expect(result.statusCode).toBe(500);
-    expect(JSON.parse(result.body)).toHaveProperty('message');
+    const body = JSON.parse(result.body);
+    expect(body).toHaveProperty('message');
+    expect(body.error).toBe('DB_ERROR');
+    expect(mockDynamoDb.send).toHaveBeenCalledTimes(1);
   });
 });

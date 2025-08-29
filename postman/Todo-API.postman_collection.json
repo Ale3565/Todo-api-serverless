@@ -1,0 +1,682 @@
+{
+  "info": {
+    "name": "Todo API Serverless",
+    "description": "Colección completa para probar la API REST de TODOs implementada con AWS Lambda y DynamoDB",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://your-api-id.execute-api.us-east-1.amazonaws.com/prod",
+      "description": "URL base del API Gateway - Reemplazar con la URL real después del despliegue"
+    },
+    {
+      "key": "todo_id",
+      "value": "",
+      "description": "ID de la tarea para operaciones específicas"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Listar TODOs (Health Check)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "});",
+                  "",
+                  "pm.test('Response has data field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('todos');",
+                  "    pm.expect(jsonData.data).to.have.property('count');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/todos",
+              "host": ["{{base_url}}"],
+              "path": ["todos"]
+            },
+            "description": "Verificar que la API esté funcionando correctamente"
+          },
+          "response": []
+        }
+      ],
+      "description": "Verificación básica de conectividad de la API"
+    },
+    {
+      "name": "CRUD Operations",
+      "item": [
+        {
+          "name": "Crear TODO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has correct structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.expect(jsonData.data).to.have.property('todoId');",
+                  "    pm.expect(jsonData.data).to.have.property('title');",
+                  "    pm.expect(jsonData.data).to.have.property('completed', false);",
+                  "    pm.expect(jsonData.data).to.have.property('createdAt');",
+                  "    pm.expect(jsonData.data).to.have.property('updatedAt');",
+                  "});",
+                  "",
+                  "pm.test('Todo has correct title', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.title).to.equal('Implementar API REST');",
+                  "});",
+                  "",
+                  "// Guardar el ID para usar en otras requests",
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('todo_id', jsonData.data.todoId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Implementar API REST\",\n    \"description\": \"Crear una API REST serverless con AWS Lambda y DynamoDB para gestión de tareas\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/todos",
+              "host": ["{{base_url}}"],
+              "path": ["todos"]
+            },
+            "description": "Crear una nueva tarea en el sistema"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener TODO por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has correct structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('todoId');",
+                  "    pm.expect(jsonData.data).to.have.property('title');",
+                  "    pm.expect(jsonData.data).to.have.property('completed');",
+                  "});",
+                  "",
+                  "pm.test('Todo ID matches requested ID', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const requestedId = pm.collectionVariables.get('todo_id');",
+                  "    pm.expect(jsonData.data.todoId).to.equal(requestedId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/todos/{{todo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["todos", "{{todo_id}}"]
+            },
+            "description": "Obtener una tarea específica por su ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar TODO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has correct structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "});",
+                  "",
+                  "pm.test('Todo was updated', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('completed', true);",
+                  "    pm.expect(jsonData.data.title).to.include('completada');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"API REST completada\",\n    \"description\": \"API REST serverless implementada exitosamente con todas las funcionalidades\",\n    \"completed\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/todos/{{todo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["todos", "{{todo_id}}"]
+            },
+            "description": "Actualizar una tarea existente"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Todos los TODOs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has correct structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('todos');",
+                  "    pm.expect(jsonData.data).to.have.property('count');",
+                  "});",
+                  "",
+                  "pm.test('Todos array is present and count matches', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.todos).to.be.an('array');",
+                  "    pm.expect(jsonData.data.count).to.equal(jsonData.data.todos.length);",
+                  "});",
+                  "",
+                  "pm.test('Contains created todo', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const todoId = pm.collectionVariables.get('todo_id');",
+                  "    const foundTodo = jsonData.data.todos.find(todo => todo.todoId === todoId);",
+                  "    pm.expect(foundTodo).to.not.be.undefined;",
+                  "    pm.expect(foundTodo.completed).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/todos",
+              "host": ["{{base_url}}"],
+              "path": ["todos"]
+            },
+            "description": "Obtener la lista completa de tareas"
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar TODO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test('Response body is empty', function () {",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/todos/{{todo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["todos", "{{todo_id}}"]
+            },
+            "description": "Eliminar una tarea específica"
+          },
+          "response": []
+        }
+      ],
+      "description": "Operaciones CRUD completas para gestión de tareas"
+    },
+    {
+      "name": "Error Handling",
+      "item": [
+        {
+          "name": "Obtener TODO inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error response structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', false);",
+                  "    pm.expect(jsonData).to.have.property('error', 'NOT_FOUND');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/todos/non-existent-id",
+              "host": ["{{base_url}}"],
+              "path": ["todos", "non-existent-id"]
+            },
+            "description": "Probar manejo de error cuando se busca un TODO que no existe"
+          },
+          "response": []
+        },
+        {
+          "name": "Crear TODO sin título",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error response structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', false);",
+                  "    pm.expect(jsonData).to.have.property('error', 'INVALID_TITLE');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"\",\n    \"description\": \"Tarea sin título válido\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/todos",
+              "host": ["{{base_url}}"],
+              "path": ["todos"]
+            },
+            "description": "Probar validación de título requerido"
+          },
+          "response": []
+        },
+        {
+          "name": "Crear TODO con JSON inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error response structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', false);",
+                  "    pm.expect(jsonData).to.have.property('error', 'INVALID_JSON');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Tarea con JSON\",\n    \"description\": \"JSON inválido\n    // falta cerrar comillas y llave"
+            },
+            "url": {
+              "raw": "{{base_url}}/todos",
+              "host": ["{{base_url}}"],
+              "path": ["todos"]
+            },
+            "description": "Probar manejo de JSON malformado"
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar TODO inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error response structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', false);",
+                  "    pm.expect(jsonData).to.have.property('error', 'TODO_NOT_FOUND');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Actualizar tarea inexistente\",\n    \"completed\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/todos/non-existent-id",
+              "host": ["{{base_url}}"],
+              "path": ["todos", "non-existent-id"]
+            },
+            "description": "Probar actualización de TODO que no existe"
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar TODO inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error response structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', false);",
+                  "    pm.expect(jsonData).to.have.property('error', 'TODO_NOT_FOUND');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/todos/non-existent-id",
+              "host": ["{{base_url}}"],
+              "path": ["todos", "non-existent-id"]
+            },
+            "description": "Probar eliminación de TODO que no existe"
+          },
+          "response": []
+        }
+      ],
+      "description": "Casos de prueba para manejo de errores y validaciones"
+    },
+    {
+      "name": "Performance Tests",
+      "item": [
+        {
+          "name": "Crear múltiples TODOs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Response has correct structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Tarea de rendimiento {{$randomInt}}\",\n    \"description\": \"Prueba de rendimiento creada en {{$isoTimestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/todos",
+              "host": ["{{base_url}}"],
+              "path": ["todos"]
+            },
+            "description": "Crear tareas para probar rendimiento"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar TODOs - Test de rendimiento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response has data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('todos');",
+                  "    pm.expect(jsonData.data).to.have.property('count');",
+                  "});",
+                  "",
+                  "pm.test('Todos are sorted by creation date (newest first)', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const todos = jsonData.data.todos;",
+                  "    if (todos.length > 1) {",
+                  "        for (let i = 0; i < todos.length - 1; i++) {",
+                  "            const currentDate = new Date(todos[i].createdAt);",
+                  "            const nextDate = new Date(todos[i + 1].createdAt);",
+                  "            pm.expect(currentDate.getTime()).to.be.at.least(nextDate.getTime());",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/todos",
+              "host": ["{{base_url}}"],
+              "path": ["todos"]
+            },
+            "description": "Probar rendimiento de listado con múltiples tareas"
+          },
+          "response": []
+        }
+      ],
+      "description": "Pruebas de rendimiento y carga"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script que se ejecuta antes de cada request",
+          "console.log('Ejecutando request a:', pm.request.url);",
+          "",
+          "// Verificar que la base_url esté configurada",
+          "const baseUrl = pm.collectionVariables.get('base_url');",
+          "if (!baseUrl || baseUrl.includes('your-api-id')) {",
+          "    console.warn('Recuerda configurar la variable base_url con tu URL real de API Gateway');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script que se ejecuta después de cada request",
+          "pm.test('Response has CORS headers', function () {",
+          "    pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.equal('*');",
+          "});",
+          "",
+          "pm.test('Response is JSON', function () {",
+          "    if (pm.response.code !== 204) {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "    }",
+          "});",
+          "",
+          "pm.test('Response time is reasonable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+          "});"
+        ]
+      }
+    }
+  ]
+}

@@ -15,23 +15,49 @@ export const handler = async (
     logInfo('Listing all todos', {
       httpMethod: event.httpMethod,
       path: event.path,
+      tableName: TABLE_NAME
     });
 
-    
-    const result = await dynamoDb.send(
-      new ScanCommand({
-        TableName: TABLE_NAME,
-      })
-    );
+    let result;
+    try {
+      result = await dynamoDb.send(
+        new ScanCommand({
+          TableName: TABLE_NAME,
+        })
+      );
 
+      logInfo('DynamoDB scan completed', { 
+        itemCount: result.Items?.length || 0,
+        tableName: TABLE_NAME 
+      });
+    } catch (dbError) {
+      logError('DynamoDB scan failed', { 
+        error: dbError instanceof Error ? dbError.message : 'Unknown database error',
+        tableName: TABLE_NAME
+      });
+      return errorResponse(500, 'DB_ERROR', 'Database operation failed');
+    }
+
+    // Asegurarse de que result.Items existe antes de continuar
     const todos = result.Items || [];
     
-    
-    todos.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Ordenar los todos por fecha de creación (más recientes primero)
+    if (todos.length > 0) {
+      todos.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+    }
 
-    await publishMetric('TodosListedCount', 1);
+    try {
+      await publishMetric('TodosListedCount', 1);
+    } catch (metricError) {
+      logError('Error publishing metric', { 
+        error: metricError instanceof Error ? metricError.message : 'Unknown metric error' 
+      });
+      // Continue execution even if metric publishing fails
+    }
 
     const duration = Date.now() - startTime;
     
@@ -50,16 +76,14 @@ export const handler = async (
     
   } catch (error) {
     const duration = Date.now() - startTime;
-    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorStack = error instanceof Error ? error.stack : undefined;
     
-    logError('Error listing todos', {
+    logError('Unexpected error listing todos', {
       error: errorMessage,
-      stack: errorStack,
       duration,
     });
     
-    return errorResponse(500, 'INTERNAL_ERROR', 'Failed to list todos');
+    // Cambiar a DB_ERROR para mantener consistencia con otros handlers
+    return errorResponse(500, 'DB_ERROR', 'Failed to list todos');
   }
 };

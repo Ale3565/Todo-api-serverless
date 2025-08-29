@@ -10,10 +10,9 @@ export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const startTime = Date.now();
-  
-  try {
-    const todoId = event.pathParameters?.id;
+  const todoId = event.pathParameters?.id;
 
+  try {
     if (!todoId) {
       logError('TodoId parameter is missing');
       return errorResponse(400, 'MISSING_ID', 'Todo ID is required');
@@ -23,60 +22,67 @@ export const handler = async (
       todoId,
       httpMethod: event.httpMethod,
       path: event.path,
+      tableName: TABLE_NAME
     });
 
-    await dynamoDb.send(
-      new DeleteCommand({
+    try {
+      await dynamoDb.send(new DeleteCommand({
         TableName: TABLE_NAME,
         Key: { todoId },
         ConditionExpression: 'attribute_exists(todoId)',
-      })
-    );
+      }));
 
-    
-    await publishMetric('TodoDeletedCount', 1);
+      logInfo('Todo deleted successfully', { todoId });
+    } catch (dbError) {
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error';
+      logError('DynamoDB error deleting todo', { 
+        error: errorMessage, 
+        todoId,
+        errorName: dbError instanceof Error ? dbError.name : 'Unknown'
+      });
+
+      // Check if this is a conditional check failure (todo not found)
+      if (dbError instanceof Error && dbError.name === 'ConditionalCheckFailedException') {
+        return errorResponse(404, 'TODO_NOT_FOUND', 'Todo not found');
+      }
+      
+      return errorResponse(500, 'DB_ERROR', 'Database error occurred while deleting todo');
+    }
+
+    // Publish metric (don't fail the request if this fails)
+    try {
+      await publishMetric('TodoDeletedCount', 1);
+    } catch (metricError) {
+      logError('Error publishing metric', { 
+        error: metricError instanceof Error ? metricError.message : 'Unknown metric error' 
+      });
+      // Continue execution - metrics errors shouldn't affect the API response
+    }
 
     const duration = Date.now() - startTime;
-    
-    logInfo('Todo deleted successfully', {
+    logInfo('Delete operation completed successfully', {
       todoId,
-      duration,
+      duration
     });
 
-    
+    // Return 204 (No Content) response
     return {
       statusCode: 204,
       headers: {
-        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key',
         'Access-Control-Allow-Methods': 'OPTIONS,POST,GET,PUT,DELETE',
       },
       body: '',
     };
-    
   } catch (error) {
     const duration = Date.now() - startTime;
-    
-    
-    const isConditionalCheckError = error instanceof Error && 'name' in error && error.name === 'ConditionalCheckFailedException';
-    
-    if (isConditionalCheckError) {
-      logError('Todo not found for deletion', {
-        todoId: event.pathParameters?.id,
-        duration,
-      });
-      return errorResponse(404, 'NOT_FOUND', 'Todo not found');
-    }
-
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorStack = error instanceof Error ? error.stack : undefined;
-
-    logError('Error deleting todo', {
-      todoId: event.pathParameters?.id,
+    
+    logError('Unexpected error deleting todo', {
+      todoId,
       error: errorMessage,
-      stack: errorStack,
-      duration,
+      duration
     });
     
     return errorResponse(500, 'INTERNAL_ERROR', 'Failed to delete todo');
