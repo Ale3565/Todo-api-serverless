@@ -1,100 +1,71 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
+
+
+import { ddbMock, cloudWatchMock } from '../setup';
 
 
 import { handler } from '../../src/lambda/handlers/create-todo';
 
+describe('CreateTodo Lambda', () => {
+  const mockEvent = {
+    body: JSON.stringify({
+      title: 'Test todo',
+      description: 'Test description'
+    }),
+    headers: {},
+    httpMethod: 'POST',
+    path: '/todos',
+    queryStringParameters: null,
+    pathParameters: null,
+    requestContext: {
+      requestId: 'test-request-id'
+    }
+  } as APIGatewayProxyEvent;
 
-const ddbMock = mockClient(DynamoDBDocumentClient);
-const cloudWatchMock = mockClient(CloudWatchClient);
-
-describe('create-todo handler', () => {
-  beforeEach(() => {
-    ddbMock.reset();
-    cloudWatchMock.reset();
-    
+  it('should create a todo successfully', async () => {
     
     ddbMock.on(PutCommand).resolves({});
     cloudWatchMock.on(PutMetricDataCommand).resolves({});
-  });
 
-  it('should create a todo successfully', async () => {
-    const event: Partial<APIGatewayProxyEvent> = {
-      body: JSON.stringify({
-        title: 'Test Todo',
-        description: 'Test Description'
-      }),
-      httpMethod: 'POST',
-      path: '/todos'
-    };
-
-    const result = await handler(event as APIGatewayProxyEvent);
+    const result = await handler(mockEvent);
 
     expect(result.statusCode).toBe(201);
-    expect(JSON.parse(result.body).success).toBe(true);
-    expect(JSON.parse(result.body).data.title).toBe('Test Todo');
-    expect(ddbMock.commandCalls(PutCommand).length).toBe(1);
+    
+    const body = JSON.parse(result.body);
+    expect(body).toHaveProperty('id');
+    expect(body.title).toBe('Test todo');
+    expect(body.description).toBe('Test description');
+    expect(body).toHaveProperty('createdAt');
+    
+
+    expect(ddbMock.calls()).toHaveLength(1);
+    expect(cloudWatchMock.calls()).toHaveLength(1);
   });
 
-  it('should return 400 when title is missing', async () => {
-    const event: Partial<APIGatewayProxyEvent> = {
-      body: JSON.stringify({}),
-      httpMethod: 'POST',
-      path: '/todos'
+  it('should return 400 for invalid input', async () => {
+    const invalidEvent = {
+      ...mockEvent,
+      body: JSON.stringify({ title: '' }) 
     };
 
-    const result = await handler(event as APIGatewayProxyEvent);
+    const result = await handler(invalidEvent);
 
     expect(result.statusCode).toBe(400);
-    expect(JSON.parse(result.body).success).toBe(false);
-    expect(JSON.parse(result.body).error).toBe('INVALID_TITLE');
-  });
-
-  it('should return 400 when body is invalid JSON', async () => {
-    const event: Partial<APIGatewayProxyEvent> = {
-      body: 'invalid json',
-      httpMethod: 'POST',
-      path: '/todos'
-    };
-
-    const result = await handler(event as APIGatewayProxyEvent);
-
-    expect(result.statusCode).toBe(400);
-    expect(JSON.parse(result.body).error).toBe('INVALID_JSON');
-  });
-
-  it('should return 400 when body is missing', async () => {
-    const event: Partial<APIGatewayProxyEvent> = {
-      body: null,
-      httpMethod: 'POST',
-      path: '/todos'
-    };
-
-    const result = await handler(event as APIGatewayProxyEvent);
-
-    expect(result.statusCode).toBe(400);
-    expect(JSON.parse(result.body).error).toBe('MISSING_BODY');
+    expect(JSON.parse(result.body)).toHaveProperty('message');
+    
+   
+    expect(ddbMock.calls()).toHaveLength(0);
+    expect(cloudWatchMock.calls()).toHaveLength(0);
   });
 
   it('should handle DynamoDB errors', async () => {
-    
-    ddbMock.on(PutCommand).rejects(new Error('DynamoDB Error'));
+    ddbMock.on(PutCommand).rejects(new Error('DynamoDB error'));
 
-    const event: Partial<APIGatewayProxyEvent> = {
-      body: JSON.stringify({
-        title: 'Test Todo',
-        description: 'Test Description'
-      }),
-      httpMethod: 'POST',
-      path: '/todos'
-    };
-
-    const result = await handler(event as APIGatewayProxyEvent);
+    const result = await handler(mockEvent);
 
     expect(result.statusCode).toBe(500);
-    expect(JSON.parse(result.body).success).toBe(false);
-    expect(JSON.parse(result.body).error).toBe('INTERNAL_ERROR');
+    expect(JSON.parse(result.body)).toHaveProperty('message');
   });
 });

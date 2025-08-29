@@ -18,6 +18,19 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix"
   },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/src", "<rootDir>/tests"],
+    "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "setupFiles": ["<rootDir>/tests/setup.js"],
+    "testEnvironmentOptions": {
+      "NODE_ENV": "test"
+    }
+  },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.152",
     "@types/jest": "^29.5.14",
